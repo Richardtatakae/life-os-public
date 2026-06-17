@@ -1,0 +1,771 @@
+// Life OS — Prisma schema
+// Life OS data model — single source of truth for the SQLite schema.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────── Habits ───────────
+
+// LEGACY (v1 streak system) — the habit UI/router moved to archive/ on
+// 2026-06-10, but these tables STAY because live code still reads them:
+// goal.get/tree (GoalHabit + StreakState via habitLinks) and the legacy habit
+// score projection (Habit + HabitCheck). Do not extend; new habit features
+// belong to LifeHabit. See archive/README.md.
+model Habit {
+  id           String    @id @default(cuid())
+  name         String    @unique
+  type         HabitType
+  section      String?
+  targetValue  Int?
+  weeklyTarget Int?
+  notes        String?
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  checks    HabitCheck[]
+  goalLinks GoalHabit[]
+
+  @@index([archivedAt])
+}
+
+enum HabitType {
+  checkbox
+  count
+  weekly
+  weekly_count
+}
+
+model HabitCheck {
+  id         String   @id @default(cuid())
+  habitId    String
+  habit      Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date       String
+  countValue Int?
+  isFreeDay  Boolean  @default(false)
+  isMissed   Boolean  @default(false)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@index([date])
+}
+
+// ─────────── Tasks ───────────
+
+model Task {
+  id             String     @id @default(cuid())
+  title          String
+  status         TaskStatus @default(todo)
+  category       String?
+  priority       Int?
+  energy         Energy?
+  estimateMin    Int?
+  deadline       DateTime?
+  softDeadline   DateTime?
+  notes          String?
+  // Free-text "done when…" finish criteria, edited in the task details panel.
+  finishCriteria String?
+  goalId         String?
+  goal           Goal?      @relation(fields: [goalId], references: [id])
+  // A task may live directly under an Area (no goal) — the Area's loose tasks.
+  areaId         String?
+  area           Area?      @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  parentTaskId   String?
+  parentTask     Task?      @relation("TaskTree", fields: [parentTaskId], references: [id])
+  subtasks       Task[]     @relation("TaskTree")
+  position       Int        @default(0) // manual sort order within sibling group
+  createdAt      DateTime   @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+
+  pomodoros      Pomodoro[]
+  dailyPlanItems DailyPlanItem[]
+  plannerBlocks  PlannerBlock[]
+  // dependencies (this task depends on others):
+  dependsOn      TaskDependency[]    @relation("Dependent")
+  blocks         TaskDependency[]    @relation("Prerequisite")
+  upNextItem     UpNextItem?
+  // Vow mode: a task may be the target of one or more vows (only one active at a time).
+  vows           Vow[]
+
+  @@index([status])
+  @@index([deadline])
+  @@index([parentTaskId])
+  @@index([areaId])
+}
+
+model TaskDependency {
+  id             String @id @default(cuid())
+  dependentId    String // the task that is blocked
+  prerequisiteId String // the task that must be done first
+  dependent      Task   @relation("Dependent", fields: [dependentId], references: [id], onDelete: Cascade)
+  prerequisite   Task   @relation("Prerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentId, prerequisiteId])
+  @@index([dependentId])
+  @@index([prerequisiteId])
+}
+
+enum TaskStatus {
+  inbox
+  todo
+  scheduled
+  in_progress
+  blocked
+  done
+  deferred
+}
+
+enum Energy {
+  high
+  medium
+  low
+}
+
+// ─────────── Goals ───────────
+
+model Goal {
+  id             String     @id @default(cuid())
+  title          String
+  description    String?
+  // Free-text "done when…" finish criteria, edited in the goal details panel.
+  finishCriteria String?
+  lifeArea       String? // deprecated: superseded by Area (areaId). Kept for back-compat.
+  areaId         String?
+  area           Area?      @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  targetMetric   String?
+  targetValue    Float?
+  deadline       DateTime?
+  // Optional Project this goal belongs to. A Project sits between Area and Goal
+  // (Area → Project → Goal). A goal may live directly under an Area (no project).
+  projectId      String?
+  project        Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentId       String?
+  parent         Goal?      @relation("GoalTree", fields: [parentId], references: [id])
+  children       Goal[]     @relation("GoalTree")
+  position       Int        @default(0) // manual sort order among sibling goals
+  status         GoalStatus @default(active)
+  createdAt      DateTime   @default(now())
+  completedAt    DateTime?
+
+  tasks          Task[]
+  habitLinks     GoalHabit[]
+  dailyPlanItems DailyPlanItem[]
+  plannerBlocks  PlannerBlock[]
+  pomodoros      Pomodoro[]
+  // dependencies (this goal is blocked until another goal is completed):
+  dependsOn      GoalDependency[] @relation("GoalDependent")
+  blocks         GoalDependency[] @relation("GoalPrerequisite")
+  upNextItem     UpNextItem?
+
+  @@index([parentId])
+  @@index([areaId])
+  @@index([projectId])
+  @@index([status])
+}
+
+// A top-level life Area — the highest level in the Pursuits module. Goals live
+// inside an Area. Areas are user-created and freely named (e.g. "Career",
+// "Health", "Side projects").
+model Area {
+  id         String    @id @default(cuid())
+  name       String
+  color      String? // optional accent colour (CSS token or hex)
+  position   Int       @default(0)
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime?
+
+  goals          Goal[]
+  tasks          Task[]
+  projects       Project[]
+  dailyPlanItems DailyPlanItem[]
+  pomodoros      Pomodoro[]
+
+  @@index([position])
+}
+
+// A Project groups goals inside an Area — the layer between Area and Goal
+// (Area → Project → Goal). Used e.g. for distinct initiatives within "Finance".
+// Soft-deleted via archivedAt; on archive its goals' projectId is set to null
+// (they fall back to being area-level goals).
+model Project {
+  id         String    @id @default(cuid())
+  name       String
+  areaId     String
+  area       Area      @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  color      String? // optional accent colour (CSS token or hex)
+  position   Int       @default(0) // manual sort order within the area
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime?
+
+  goals          Goal[]
+  dailyPlanItems DailyPlanItem[]
+  pomodoros      Pomodoro[]
+
+  @@index([areaId])
+}
+
+// ─────────── Daily plan ("push to today") ───────────
+
+// One row = a Pursuits item (a task, goal, project, or area) pinned to a single
+// day's plan, surfaced in the Schedule tab as "today's list". It does NOT copy
+// the item — it references the real entity, so checking the underlying task off
+// anywhere updates it everywhere. Exactly one of the four *Id fields is set;
+// `kind` denormalises which one for quick filtering. Per-day: a row is scoped
+// to `date`, so tomorrow's list starts empty. Cascades on delete of the target.
+model DailyPlanItem {
+  id        String   @id @default(cuid())
+  date      String // ISO "YYYY-MM-DD" — the day this item is planned for
+  kind      String // 'task' | 'goal' | 'project' | 'area'
+  position  Int      @default(0) // manual sort order within the day
+  createdAt DateTime @default(now())
+
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  goalId    String?
+  goal      Goal?    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  areaId    String?
+  area      Area?    @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  // Prevent pushing the same entity twice on the same day. SQLite treats NULLs
+  // as distinct, so each constraint only binds rows of that one kind.
+  @@unique([date, taskId])
+  @@unique([date, goalId])
+  @@unique([date, projectId])
+  @@unique([date, areaId])
+  @@index([date])
+}
+
+// A block on the Schedule tab's day-view planner (ported from the "gentle climb"
+// HTML day-companion). Each block is either in the task box (placed=false) or
+// dropped on the time axis (placed=true, startMin = minutes from midnight).
+// energy uses the HTML's 4-way palette ('high'|'med'|'low'|'fun') — kept as a
+// plain string, separate from the app's 3-value Energy enum. A block may link to
+// a real Task (so it can enter Focus/Pomodoro mode and stay in sync with
+// Pursuits) and/or a Goal (a goal pushed as one schedulable block).
+model PlannerBlock {
+  id          String    @id @default(cuid())
+  date        String // ISO "YYYY-MM-DD" — the day this block belongs to
+  title       String
+  kind        String    @default("task") // 'task' | 'pause' | 'work' | 'meal' | 'break' | 'read' | 'meditation' | 'commitment'
+  energy      String    @default("med") // 'high' | 'med' | 'low' | 'fun'
+  durationMin Int       @default(20)
+  placed      Boolean   @default(false)
+  startMin    Int? // minutes-from-midnight when placed on the axis
+  status      String    @default("todo") // 'todo' | 'done'
+  landmark    String? // the "next step" note
+  position    Int       @default(0) // manual sort order in the box (or within a work block)
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  taskId String?
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  goalId String?
+  goal   Goal?   @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  // Set when this block was auto-generated from a RecurringCommitment template.
+  // It's only a tag (no relation): once placed the block is independent, so a
+  // commitment's settings changing — or the commitment being deleted — never
+  // touches already-materialised days. Used for styling + traceability.
+  commitmentId String?
+
+  // A 'work' block is a container; tasks nested inside it point here via parentId.
+  // A nested task's time on the axis is derived from the parent's startMin + the
+  // durations of earlier siblings, so moving the parent moves the whole group.
+  parentId String?
+  parent   PlannerBlock?  @relation("WorkBlockChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children PlannerBlock[] @relation("WorkBlockChildren")
+
+  @@index([date])
+}
+
+// A recurring commitment — a fixed obligation (gym, standup, language class…)
+// that auto-schedules itself onto the day planner. It's a TEMPLATE, not a block:
+// for each matching day it spawns one placed PlannerBlock (kind 'commitment').
+model RecurringCommitment {
+  id          String   @id @default(cuid())
+  title       String
+  durationMin Int      @default(30)
+  startMin    Int      @default(540) // time of day, minutes-from-midnight (09:00)
+  frequency   String   @default("weekly") // 'weekly' | 'biweekly'
+  weekdays    String   @default("") // CSV of JS day numbers, Sun=0..Sat=6, e.g. "1,3,5"
+  anchorWeek  String   @default("") // YYYY-MM-DD — a reference week for biweekly parity
+  startDate   String   @default("") // YYYY-MM-DD — first day it may schedule ("" = no limit / starts now)
+  active      Boolean  @default(true) // paused commitments stop spawning new blocks
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  instances CommitmentInstance[]
+}
+
+// One row per (commitment, day) that has already been materialised onto the
+// planner. Its presence means "this day is handled" — so deleting that day's
+// block does NOT bring it back, and re-opening the day won't duplicate it. This
+// is what makes per-day edits/deletes stick.
+model CommitmentInstance {
+  id           String              @id @default(cuid())
+  commitmentId String
+  commitment   RecurringCommitment @relation(fields: [commitmentId], references: [id], onDelete: Cascade)
+  date         String // YYYY-MM-DD
+  createdAt    DateTime            @default(now())
+
+  @@unique([commitmentId, date])
+  @@index([date])
+}
+
+// A goal-to-goal dependency: `dependent` is blocked until `prerequisite` is
+// completed. Mirrors TaskDependency.
+model GoalDependency {
+  id             String @id @default(cuid())
+  dependentId    String // the goal that is blocked
+  prerequisiteId String // the goal that must be completed first
+  dependent      Goal   @relation("GoalDependent", fields: [dependentId], references: [id], onDelete: Cascade)
+  prerequisite   Goal   @relation("GoalPrerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentId, prerequisiteId])
+  @@index([dependentId])
+  @@index([prerequisiteId])
+}
+
+enum GoalStatus {
+  planning
+  active
+  paused
+  completed
+  archived
+}
+
+model GoalHabit {
+  goalId  String
+  habitId String
+  weight  Int    @default(1)
+
+  goal  Goal  @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  habit Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@id([goalId, habitId])
+}
+
+// ─────────── Problems (capture inbox) ───────────
+
+// A quick-jot problem in the Pursuits "Problems" box — a raw item you want to
+// turn into a goal/task later. Lightweight on purpose: text + manual order.
+model Problem {
+  id         String    @id @default(cuid())
+  text       String
+  position   Int       @default(0) // manual sort order
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime? // set when resolved / removed (soft-delete)
+
+  @@index([archivedAt])
+}
+
+// A raw single-line jot in the Ideas tab — a freeform scratchpad. Mirrors
+// Problem (text + manual order + soft-delete).
+// source: optional tag for the origin of the idea — 'vow' = parked while
+// the user was under a Vow (so they can review deferred ideas after completing it).
+// heading: optional title added in Wave 3 Ideas redesign (text stays as the body).
+// folderId: optional folder grouping; null = "Unfiled".
+model Idea {
+  id         String    @id @default(cuid())
+  text       String
+  heading    String? // optional title; text stays as the body
+  source     String? // 'vow' | null — origin tag
+  folderId   String? // null = "Unfiled"
+  folder     Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  position   Int       @default(0) // manual sort order
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime? // set when removed (soft-delete)
+
+  @@index([archivedAt])
+  @@index([folderId])
+}
+
+// A hierarchical folder for grouping Ideas. Self-referencing for arbitrary nesting.
+// archivedAt = soft-delete. Ideas in an archived folder keep their folderId
+// (so they can be recovered) but the folder won't appear in the active list.
+model Folder {
+  id         String    @id @default(cuid())
+  name       String
+  parentId   String?
+  parent     Folder?   @relation("FolderTree", fields: [parentId], references: [id])
+  children   Folder[]  @relation("FolderTree")
+  position   Int       @default(0) // manual sort order among siblings
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime?
+
+  ideas Idea[]
+
+  @@index([parentId])
+  @@index([archivedAt])
+}
+
+// Lookup table for Journal sub-tabs (e.g. "Journal").
+// DiaryEntry.kind stores the slug and joins here by slug for display metadata.
+// New journal types can be added without a migration — just insert a row.
+model JournalType {
+  id         String    @id @default(cuid())
+  name       String
+  slug       String    @unique
+  order      Int       @default(0)
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime?
+
+  @@index([order])
+}
+
+// A dated entry in the Journal tab: freeform text plus a small daily
+// questionnaire — eight 1-10 wellbeing sliders and an optional typed sleep-hours
+// number (grouped with the sleep-quality rating). One row per saved entry;
+// multiple entries per day are allowed. The tab lists the last N entries with
+// their time of entry + ratings, and the data supports later trend analysis.
+// (Named DiaryEntry to avoid colliding with another internal model that is
+// also named JournalEntry.)
+model DiaryEntry {
+  id        String   @id @default(cuid())
+  text      String // the written entry
+  createdAt DateTime @default(now()) // time of entry
+
+  // Which Journal sub-tab (slug) this entry belongs to. Defaults to the normal
+  // journal (with the questionnaire).
+  kind String @default("journal")
+
+  // Questionnaire — nine -5..+5 sliders. Nullable: a slider only records if the
+  // user actually touched it, so an entry can be saved with the questionnaire
+  // partly or entirely blank (null = "not rated", distinct from a low score).
+  mood           Int?
+  energy         Int?
+  focus          Int?
+  stress         Int?
+  sleepQuality   Int?
+  motivation     Int?
+  hope           Int?
+  physicalHealth Int?
+  productivity   Int?
+
+  // Typed number box grouped with sleep quality (e.g. 7.5 hours). Optional.
+  sleepHours Float?
+
+  archivedAt DateTime? // soft-delete
+
+  @@index([archivedAt])
+  @@index([createdAt])
+  @@index([kind])
+}
+
+// A raw single-line jot in the Habits tab — a temporary scratchpad until the
+// proper habit-tracking tool is built. Mirrors Idea (text + order + soft-delete).
+model HabitNote {
+  id         String    @id @default(cuid())
+  text       String
+  position   Int       @default(0) // manual sort order
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime? // set when removed (soft-delete)
+
+  @@index([archivedAt])
+}
+
+// ─────────── Life Habits (daily checkbox tracker) ───────────
+//
+// "Habits that definitely improve my life" — a simple per-day checkbox grid in
+// the Habits tab. Each LifeHabit is one row; every calendar day is a box.
+//
+// The day-7 rule: for the first 7 days from a habit's startDate the box is OFF
+// by default and ticked manually; from day 8 on it defaults to ON ("formed")
+// and is only un-ticked on a miss. Only explicit user toggles are stored as
+// LifeHabitDay rows — an auto-checked day with no row reads as done via that
+// default, so the grid never needs backfilling. See src/lib/lifeHabits.ts.
+model LifeHabit {
+  id         String    @id @default(cuid())
+  name       String
+  startDate  String // local "YYYY-MM-DD" — day 1 of this habit (drives the 7-day rule)
+  cadenceDays Int      @default(1) // how often the habit is due: 1 = daily (the classic day-7 grid). >1 = an interval habit due once per calendar-aligned period of this many days (3 = every 3 days, 7 = weekly, 14 = fortnightly). Periods are anchored to a fixed Monday epoch, so all habits of the same cadence share boundaries. Interval periods default OFF (you tick each one) and are scored per-period — see src/lib/lifeHabits.ts.
+  position   Int       @default(0) // manual sort order (row order, top → bottom)
+  autoSince  String? // when set ("YYYY-MM-DD"), this habit lives in the bottom "Established" section: days on/after this date default to done (auto-tick), so you only un-tick a miss. NULL = top "Building" section (the normal 7-day rule).
+  notes      String? // free-text reminder/checklist shown in the habit's detail popup
+  peakScore  Float     @default(0) // highest consistency score ever reached — the permanent "best ever" badge; survives drops. Updated server-side in setDay (see lifeHabit router). Existing rows start at 0 and self-heal on the next tick.
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime? // soft-delete
+
+  days     LifeHabitDay[]
+  meditations MeditationSession[]
+  routineChecks HabitRoutineCheck[]
+  routines HabitRoutine[] // attached Routines (many): each one's steps + conditions become a per-day checklist; the day auto-ticks when ANY one routine is fully checked (OR logic, two-way). Empty = no routine attached.
+
+  @@index([archivedAt])
+}
+
+// A single logged meditation sitting, tracked for habits whose detail popup shows
+// the duration logger (e.g. the "Meditation" habit). Multiple sessions per day are
+// allowed and summed in the chart. Stored separately from the day-7 tick grid:
+// logging a session does not auto-tick the habit's calendar cell.
+model MeditationSession {
+  id          String    @id @default(cuid())
+  habitId     String
+  habit       LifeHabit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date        String // local "YYYY-MM-DD" the sitting happened on
+  startTime   String // local "HH:MM" it began
+  durationMin Int // length in minutes
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([habitId, date])
+  @@index([date])
+}
+
+model LifeHabitDay {
+  id        String    @id @default(cuid())
+  habitId   String
+  habit     LifeHabit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date      String // local "YYYY-MM-DD"
+  done      Boolean // explicit user setting for this cell (overrides the day-7 default)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([habitId, date])
+  @@index([date])
+}
+
+// ─────────── Routines ───────────
+
+// A named, ordered checklist of steps (e.g. "Morning routine"). The Routines
+// tab renders each Routine as a timeline: every item is anchored either to a
+// fixed clock time or flows from the previous item by its duration.
+model Routine {
+  id         String    @id @default(cuid())
+  name       String
+  // Clock anchor (HH:MM) for the first item if it has no fixedTime of its own.
+  // NULL = an unscheduled "do whenever" routine: the timeline then shows
+  // elapsed time (0:00, 0:15, …) instead of clock times.
+  startTime  String?
+  position   Int       @default(0) // manual sort order among routines
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime? // set when removed (soft-delete)
+
+  items      RoutineItem[]
+  conditions RoutineCondition[]
+  habits     HabitRoutine[]
+
+  @@index([archivedAt])
+}
+
+// Join row linking a LifeHabit to one of its attached Routines (many-to-many).
+// A habit can attach several routines (e.g. "Evening Flow" → "Sleep Routine
+// Solo" + "Sleep Routine Social"); the habit's day auto-ticks when ANY single
+// attached routine has all of its steps + conditions checked (OR logic). See
+// lifeHabit.setChecklistItem + src/lib/routineChecklist.anyRoutineComplete.
+model HabitRoutine {
+  habitId   String
+  habit     LifeHabit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  routineId String
+  routine   Routine   @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  position  Int       @default(0) // order the attached routines appear in the habit's checklist
+  createdAt DateTime  @default(now())
+
+  @@id([habitId, routineId])
+  @@index([routineId])
+}
+
+// A non-timeline criterion for a routine — e.g. "no phone during the morning
+// routine". Unlike a RoutineItem it has no duration or clock time, so it never
+// appears on the timeline. When the routine is attached to a habit, each
+// condition becomes its own checkbox in the habit's per-day checklist.
+model RoutineCondition {
+  id        String   @id @default(cuid())
+  routineId String
+  routine   Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  text      String
+  position  Int      @default(0) // manual sort order within the routine's conditions
+  createdAt DateTime @default(now())
+
+  @@index([routineId])
+}
+
+// Per-habit, per-day tick state for one routine step or condition. The Routine
+// itself stays a stateless template; the user's daily progress against an
+// attached routine lives here. When every step + condition for a (habit, date)
+// is done, the habit's LifeHabitDay is auto-ticked (two-way — see lifeHabit
+// router setChecklistItem). sourceId is a RoutineItem.id or RoutineCondition.id.
+model HabitRoutineCheck {
+  id         String    @id @default(cuid())
+  habitId    String
+  habit      LifeHabit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date       String // local "YYYY-MM-DD"
+  sourceId   String // RoutineItem.id or RoutineCondition.id
+  sourceKind String // 'step' | 'condition'
+  done       Boolean
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([habitId, date, sourceId])
+  @@index([habitId, date])
+}
+
+model RoutineItem {
+  id          String   @id @default(cuid())
+  routineId   String
+  routine     Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  text        String
+  // Minutes the step takes. Drives the flowing timeline + end-time calc.
+  durationMin Int      @default(0)
+  // Optional fixed clock time (HH:MM). When set, the step is anchored here
+  // regardless of the previous item's end time.
+  fixedTime   String?
+  position    Int      @default(0) // manual sort order within the routine
+  createdAt   DateTime @default(now())
+
+  subItems RoutineSubItem[]
+
+  @@index([routineId])
+}
+
+// A nested detail line under a RoutineItem — e.g. the ingredients of a
+// "supplement drink" step. Plain text, manually ordered. No timing.
+model RoutineSubItem {
+  id        String      @id @default(cuid())
+  itemId    String
+  item      RoutineItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  text      String
+  position  Int         @default(0) // manual sort order within the step
+  createdAt DateTime    @default(now())
+
+  @@index([itemId])
+}
+
+// ─────────── Pomodoro ───────────
+
+// A focus session. Attributed to exactly one Pursuit target — usually a task,
+// but Focus mode can also run against a goal, project, or area directly (no
+// fake auto-created task). Exactly one of taskId/goalId/projectId/areaId is set.
+// Time rolls UP the containment hierarchy (see the `time` router): a session on
+// a subtask counts toward its task, that task's goal, the goal's project/area.
+model Pomodoro {
+  id        String         @id @default(cuid())
+  taskId    String?
+  task      Task?          @relation(fields: [taskId], references: [id])
+  goalId    String?
+  goal      Goal?          @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  areaId    String?
+  area      Area?          @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  startedAt DateTime
+  endedAt   DateTime?
+  pausedMs  Int            @default(0)
+  targetMin Int            @default(25)
+  status    PomodoroStatus @default(running)
+  notes     String?
+
+  @@index([taskId])
+  @@index([goalId])
+  @@index([projectId])
+  @@index([areaId])
+}
+
+enum PomodoroStatus {
+  running
+  paused
+  completed
+  abandoned
+}
+
+// A user-defined Focus-mode Pomodoro timer — the editable "upper bar" of timers
+// in Focus mode. `workMin` / `breakMin` drive a Focus interval + its break.
+// Ordered (manual drag-reorder) and soft-deleted. Mirrors Idea / Problem.
+model FocusTimer {
+  id         String    @id @default(cuid())
+  name       String
+  workMin    Int       @default(25)
+  breakMin   Int       @default(5)
+  position   Int       @default(0) // manual sort order, left → right in the bar
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime? // soft-delete
+
+  @@index([archivedAt])
+}
+
+// ─────────── Vow Mode ───────────
+//
+// A Vow is a single-task commitment: "nothing else until THIS is done."
+// Only one vow may be active (endedAt null) at a time — enforced by the
+// vow router. outcome is 'kept' (task done) or 'broken' (abandoned).
+
+model Vow {
+  id             String    @id @default(cuid())
+  taskId         String
+  task           Task      @relation(fields: [taskId], references: [id])
+  finishCriteria String    // user-written "done when…" criteria for this vow
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime? // null = vow is still active
+  outcome        String?   // 'kept' | 'broken' — set on end
+  breakReason    String?   // set when outcome = 'broken'
+
+  @@index([endedAt])
+  @@index([taskId])
+}
+
+// ─────────── Event log + Projections ───────────
+
+model Event {
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  actor      String
+  entityType String
+  entityId   String
+  action     String
+  payload    Json
+
+  @@index([timestamp])
+  @@index([entityType, entityId])
+}
+
+model StreakState {
+  habitId           String   @id
+  currentStreak     Int      @default(0)
+  longestStreak     Int      @default(0)
+  totalChecks       Int      @default(0)
+  totalCount        Int      @default(0)
+  todayCount        Int      @default(0)
+  freeDaysAvailable Int      @default(0)
+  freeDaysUsed      Int      @default(0)
+  stage             String   @default("in_training")
+  lastCheckedDate   String?
+  updatedAt         DateTime @updatedAt
+}
+
+// ─────────── Settings ───────────
+
+model AppSetting {
+  key   String @id
+  value String
+}
+
+
+
+// ─────────── Up-next queue ───────────
+
+// A short ordered queue of Pursuits items the user has flagged "do next".
+// Each slot references either a Task or a Goal (kind denormalises which).
+// taskId and goalId each carry a @unique constraint so the same entity can't
+// appear twice; the queue is ordered by position (0-based, ascending).
+model UpNextItem {
+  id        String   @id @default(cuid())
+  kind      String   // 'task' | 'goal'
+  taskId    String?  @unique
+  goalId    String?  @unique
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  goal Goal? @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([position])
+}

@@ -1,0 +1,100 @@
+/* ============================================================================
+   tokens.css — THE single design contract for the consolidated UI system.
+
+   Imported by globals.css right after Tailwind. Every shadcn/ui primitive and
+   every future-converted screen reads from the names below. THEMES set VALUES
+   only — these names never change.
+
+   ARCHITECTURE
+   The shadcn variable names (--background, --primary, --border, …) are BRIDGES
+   that derive from the app's existing --color-* tokens (defined in globals.css
+   @theme + per-theme/per-mode override blocks). Because they reference those
+   tokens via var(), every primitive automatically follows ALL existing themes
+   and light/dark modes — there is still ONE source of truth for colour VALUES.
+
+   COLOUR-WEAKNESS RULE (non-negotiable)
+   State lives on the blue ↔ amber axis + brightness, NEVER red-vs-green.
+   --destructive maps to AMBER, not red. --success is a bright teal-blue.
+   ========================================================================== */
+
+@import "tw-animate-css";
+
+:root {
+  /* ---- Surfaces ---- */
+  --background:            var(--color-base);
+  --foreground:            var(--color-ink);
+  --card:                  var(--color-surface);
+  --card-foreground:       var(--color-ink);
+  --popover:               var(--color-surface);
+  --popover-foreground:    var(--color-ink);
+
+  /* ---- Interactive / state (blue ↔ amber axis) ---- */
+  --primary:               var(--color-blue);      /* action / "on track"        */
+  --primary-foreground:    #ffffff;
+  --secondary:             var(--color-surface-2);  /* subtle fill                */
+  --secondary-foreground:  var(--color-ink);
+  --accent:                var(--color-surface-2);  /* hover / highlight surface  */
+  --accent-foreground:     var(--color-ink);
+  --success:               var(--color-mythic);     /* positive — bright teal-blue*/
+  --success-foreground:    #06121f;
+  --destructive:           var(--color-amber);      /* danger/attention = AMBER   */
+  --destructive-foreground:#1f1605;
+
+  /* ---- Lines / focus ---- */
+  --border:                var(--color-line);
+  --input:                 var(--color-line);
+  --ring:                  var(--color-blue);
+
+  /* ---- Shape ---- */
+  --radius:                0.85rem;                  /* soft clean-modern corner   */
+}
+
+/* Map the bridge variables onto Tailwind utility names so primitives can use
+   bg-card / text-foreground / bg-primary / border-border / ring-ring, etc.
+   `inline` makes Tailwind inline the var() reference, so per-theme token
+   overrides keep flowing through to the utilities.
+
+   COLLISION NOTE: the app already defines --color-muted as secondary TEXT in
+   globals.css @theme. We must NOT redefine it. Instead we add the NEW name
+   --color-muted-foreground (pointing at the same value) for shadcn's secondary-
+   text slot; primitives use bg-secondary where upstream shadcn would use
+   bg-muted. */
+@theme inline {
+  --color-background:             var(--background);
+  --color-foreground:             var(--foreground);
+  --color-card:                   var(--card);
+  --color-card-foreground:        var(--card-foreground);
+  --color-popover:                var(--popover);
+  --color-popover-foreground:     var(--popover-foreground);
+  --color-primary:                var(--primary);
+  --color-primary-foreground:     var(--primary-foreground);
+  --color-secondary:              var(--secondary);
+  --color-secondary-foreground:   var(--secondary-foreground);
+  --color-accent:                 var(--accent);
+  --color-accent-foreground:      var(--accent-foreground);
+  --color-success:                var(--success);
+  --color-success-foreground:     var(--success-foreground);
+  --color-destructive:            var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-muted-foreground:       var(--color-muted);
+  --color-border:                 var(--border);
+  --color-input:                  var(--input);
+  --color-ring:                   var(--ring);
+
+  /* ---- Accent + control-contrast tokens ----------------------------------------
+     purple (#6c5ce0 dark-default / #8c7df2 clean-modern dark) and
+     steel  (#5d7a9e dark-default / #7a9abf clean-modern dark) are already
+     defined as --color-purple / --color-steel in globals.css @theme.
+     Tailwind v4 auto-generates bg-purple / text-purple / border-purple and
+     bg-steel / text-steel / border-steel utilities from those @theme entries —
+     no re-declaration needed here.
+
+     control (#2a3248) and control-border (#3a4460) are defined as
+     --color-control / --color-control-border in globals.css @theme.
+     Tailwind auto-generates bg-control / border-control-border utilities.
+
+     Elevation tokens --shadow-card / --shadow-pop / --carve are plain CSS
+     custom properties (not --color-*) defined in globals.css @theme.
+     Consume them as: box-shadow: var(--shadow-card) or shadow-[var(--shadow-card)].
+     ---------------------------------------------------------------------------- */
+}

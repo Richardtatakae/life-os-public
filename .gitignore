@@ -1,0 +1,75 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Claude Code local state (agent worktrees, settings)
+.claude/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment files
+.env
+.env*.local
+.env.production
+
+# Vercel
+.vercel
+
+# Tauri
+src-tauri/target/
+src-tauri/Cargo.lock
+src-tauri/gen/
+
+# Prisma local DB + ANY database backup (contain personal data — never commit)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.db.bak*
+*.db.backup*
+*.bak
+prisma/data.db
+prisma/data.db-journal
+prisma/*.bak*
+
+# Demo mode — local fake DB (rebuildable via `npm run db:seed-demo`) + flag file
+prisma/demo.db
+prisma/demo.db-journal
+prisma/.demo-mode
+
+# Test artifacts
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# GSD state (kept tracked in main branch by build agent — not gitignored)
+# .gsd/
+
+# Archived personal data exports (local only — never push data to GitHub)
+archive/data/

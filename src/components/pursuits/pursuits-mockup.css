@@ -1,0 +1,1360 @@
+/*
+ * pursuits-mockup.css
+ *
+ * CSS ported verbatim from mockups/pursuits-mission-control-3-upnext.html
+ * Every selector is prefixed with `.pmc ` (descendant scope) so nothing leaks.
+ * CSS custom properties are defined on `.pmc` instead of `:root`.
+ * Body/background/font styles from the mockup become styles on `.pmc` itself.
+ *
+ * The approved design is Variant A (numbered Up-next queue). Variants B and C
+ * are included so the token set is complete; restyle agents use Variant A only.
+ *
+ * Usage:
+ *   Add class="pmc" to the root wrapper of PursuitsBoard AND PursuitsColumns.
+ *   Import this file in PursuitsBoard.tsx.
+ */
+
+/* ─── Webfont (mockup uses Hanken Grotesk) ─── */
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&display=swap');
+
+/* ─── Token layer — clean-modern light (default) ─── */
+.pmc {
+  --base: #f5f6f9;
+  --base-deep: #eef0f5;
+  --surface: #ffffff;
+  --surface-2: #f5f7fb;
+  --ink: #181b2a;
+  --muted: #5e6678;
+  --faint: #8b92a4;
+  --line: #e8eaf1;
+  --line-strong: #d8dce6;
+  --blue: #2f6df6;
+  --blue-deep: #2156d6;
+  --blue-soft: #eaf1fe;
+  --amber: #c47f12;
+  --amber-light: #eaa531;
+  --amber-soft: #fdf3e1;
+  --purple: #6c5ce0;
+  --purple-soft: #efedfc;
+  --steel: #5d7a9e;
+  --steel-soft: #e7ecf3;
+  --radius: 18px;
+  --concept-bg: #eaf1fe;
+  --concept-border: #d6e3fd;
+  --concept-ink: #27355c;
+  --concept-b: #2156d6;
+  --ck-bg: #ffffff;
+  --p2-border: #ecd9b4;
+  --prob-ink: #5a4a23;
+  --prob-x: #b89c5e;
+  --sel-border: #cfdffc;
+  --toast-bg: #181b2a;
+  --toast-ink: #ffffff;
+  --shadow: 0 1px 2px rgba(20, 26, 43, 0.04), 0 2px 6px rgba(20, 26, 43, 0.05);
+  --shadow-lift: 0 4px 10px rgba(20, 26, 43, 0.1), 0 12px 28px rgba(20, 26, 43, 0.1);
+
+  /* Body-level defaults scoped to .pmc */
+  background: var(--base);
+  color: var(--ink);
+  font-family: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+
+/* ─── Token layer — dark mode ─── */
+.pmc[data-mode="dark"],
+.pmc[data-mode="dark"] * {
+  --base: #0e1016;
+  --base-deep: #090a0e;
+  --surface: #171a22;
+  --surface-2: #1e222b;
+  --ink: #f2f4fa;
+  --muted: #a4abbb;
+  --faint: #71788a;
+  --line: #262b35;
+  --line-strong: #353b47;
+  --blue: #4d8bff;
+  --blue-deep: #3a72e8;
+  --blue-soft: #1c2840;
+  --amber: #e6a534;
+  --amber-light: #f3bd57;
+  --amber-soft: #2b2310;
+  --purple: #8c7df2;
+  --purple-soft: #272246;
+  --steel: #7e93b0;
+  --steel-soft: #222834;
+  --concept-bg: #16203a;
+  --concept-border: #243358;
+  --concept-ink: #c4d2f2;
+  --concept-b: #7ba6ff;
+  --ck-bg: #11141b;
+  --p2-border: #4a3c1a;
+  --prob-ink: #e3cf9a;
+  --prob-x: #a08c55;
+  --sel-border: #2c4170;
+  --toast-bg: #f2f4fa;
+  --toast-ink: #11141b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 3px 10px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.45), 0 14px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ─── Reset inside scope ─── */
+.pmc *,
+.pmc *::before,
+.pmc *::after {
+  box-sizing: border-box;
+}
+
+.pmc button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.pmc input,
+.pmc select {
+  font: inherit;
+}
+
+/* ─── Header + content wrapper (embedded — non-sticky topbar) ─── */
+
+.pmc .topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding: 0 4px;
+}
+
+.pmc .topbar h1 {
+  font-size: 17px;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.pmc .topbar .sub {
+  color: var(--faint);
+  font-size: 12.5px;
+}
+
+.pmc .pmc-main {
+  max-width: 1340px;
+  margin: 0 auto;
+}
+
+/* ─── Shared atoms ─── */
+
+.pmc .panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.pmc .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.pmc .chip.next {
+  background: var(--amber-light);
+  color: #5a3c05;
+}
+
+.pmc .chip.p1 {
+  background: var(--amber);
+  color: #fff;
+}
+
+.pmc .chip.p2 {
+  background: var(--amber-soft);
+  color: var(--amber);
+  border: 1px solid var(--p2-border);
+}
+
+.pmc .chip.p3 {
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.pmc .chip.future {
+  background: var(--purple-soft);
+  color: var(--purple);
+}
+
+.pmc .chip.archived {
+  background: var(--surface-2);
+  color: var(--faint);
+  border: 1px dashed var(--line-strong);
+}
+
+.pmc .meta {
+  font-size: 12px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.pmc .meta.overdue {
+  color: var(--amber);
+  font-weight: 700;
+}
+
+/* Circular checkbox */
+.pmc .ck {
+  appearance: none;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  background: var(--ck-bg);
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+  transition: 0.12s;
+  margin: 0;
+}
+
+.pmc .ck:hover {
+  border-color: var(--blue);
+}
+
+.pmc .ck:checked {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.pmc .ck:checked::after {
+  content: "";
+  position: absolute;
+  left: 4.5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Square checkbox (for goals) */
+.pmc .ck.goal-ck {
+  border-radius: 6px;
+}
+
+/* Archive toggle */
+.pmc .arch-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pmc .arch-toggle .track {
+  width: 34px;
+  height: 19px;
+  border-radius: 99px;
+  background: var(--line);
+  position: relative;
+  transition: 0.15s;
+}
+
+.pmc .arch-toggle .track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: 0.15s;
+}
+
+.pmc .arch-toggle.on .track {
+  background: var(--amber-light);
+}
+
+.pmc .arch-toggle.on .track::after {
+  left: 17px;
+}
+
+.pmc .arch-toggle.on {
+  color: var(--amber);
+}
+
+/* Progress bar */
+.pmc .pbar {
+  height: 5px;
+  border-radius: 99px;
+  background: var(--base-deep);
+  overflow: hidden;
+  flex: 1;
+  min-width: 50px;
+}
+
+.pmc .pbar > span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--blue-deep), var(--blue));
+  transition: 0.3s;
+}
+
+/* Done-row strikethrough */
+.pmc .row-done .t-title {
+  text-decoration: line-through;
+  color: var(--faint);
+}
+
+.pmc .row-done {
+  opacity: 0.72;
+}
+
+/* Ghost button */
+.pmc .ghostbtn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 9px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: 0.12s;
+}
+
+.pmc .ghostbtn:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+/* Blue filled button */
+.pmc .bluebtn {
+  border: none;
+  background: var(--blue);
+  color: #fff;
+  border-radius: 9px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pmc .bluebtn:hover {
+  background: var(--blue-deep);
+}
+
+/* Star pin button */
+.pmc .pin {
+  border: none;
+  background: none;
+  color: var(--line-strong);
+  font-size: 15px;
+  padding: 0 3px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pmc .pin:hover {
+  color: var(--amber);
+}
+
+.pmc .pin.on {
+  color: var(--amber);
+}
+
+/* Unpin (✕) button */
+.pmc .unpin {
+  border: none;
+  background: none;
+  color: var(--faint);
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.pmc .unpin:hover {
+  color: var(--ink);
+}
+
+/* Drag-over outline */
+.pmc .dropping {
+  outline: 2px dashed var(--blue);
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+
+/* ════════════════ UP NEXT — shared bits ════════════════ */
+
+.pmc .un-sugg {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.pmc .un-sugg .lbl {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.pmc .sugg-chip {
+  border: 1px dashed var(--line-strong);
+  background: none;
+  color: var(--muted);
+  border-radius: 99px;
+  padding: 4px 11px;
+  font-size: 12px;
+}
+
+.pmc .sugg-chip:hover {
+  color: var(--blue);
+  border-color: var(--blue);
+}
+
+.pmc .hint {
+  font-size: 11.5px;
+  color: var(--faint);
+  font-weight: 500;
+}
+
+/* ── Variant A: numbered queue (APPROVED DESIGN) ── */
+
+.pmc .un-a {
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+
+.pmc .un-a .un-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.pmc .un-a h3 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.pmc .un-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: grab;
+  border: 1px solid transparent;
+}
+
+.pmc .un-row:hover {
+  background: var(--surface-2);
+}
+
+/* Number badge (1, 2, 3 … / NOW) */
+.pmc .num {
+  width: 38px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 8px;
+  padding: 3px 0;
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.pmc .num.now {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+
+.pmc .un-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pmc .un-title {
+  font-weight: 700;
+  font-size: 13.8px;
+}
+
+.pmc .un-crumb {
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.pmc .goal-ic {
+  color: var(--purple);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.pmc .un-empty {
+  color: var(--faint);
+  font-size: 13px;
+  padding: 14px 6px;
+}
+
+/* ── Variant B: banner strip (included for completeness) ── */
+
+.pmc .un-b {
+  padding: 14px 20px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  overflow-x: auto;
+  background: linear-gradient(100deg, #16224a, #27408f);
+  border: none;
+  color: #fff;
+}
+
+.pmc .un-b .label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #aac2ff;
+  flex-shrink: 0;
+}
+
+.pmc .un-chip {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  cursor: grab;
+  transition: 0.12s;
+  position: relative;
+}
+
+.pmc .un-chip:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.pmc .un-chip .t {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.pmc .un-chip .c {
+  font-size: 10.5px;
+  color: #aac2ff;
+}
+
+.pmc .badge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: var(--amber-light);
+  color: #3a2a05;
+  font-size: 10.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.pmc .badge.now {
+  background: #fff;
+  color: #16224a;
+}
+
+.pmc .un-b .hint {
+  color: #aac2ff;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.pmc .un-b-wrap {
+  margin-bottom: 18px;
+}
+
+/* ── Variant C: big cards (included for completeness) ── */
+
+.pmc .un-c {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.pmc .un-c-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.pmc .un-c-head h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.pmc .un-card {
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.pmc .un-card .rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+}
+
+.pmc .un-card.rank0 {
+  outline: 2px solid var(--blue);
+  outline-offset: -1px;
+  grid-column: 1 / span 2;
+}
+
+.pmc .un-card .rank {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pmc .un-card .rank .crumb-in {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pmc .un-card .title {
+  font-size: 15.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pmc .un-card .why {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.pmc .un-card .foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+
+.pmc .un-card .foot .meta {
+  margin-right: auto;
+}
+
+/* ════════════════ Three columns (V2 core) ════════════════ */
+
+.pmc .v2-grid {
+  display: grid;
+  grid-template-columns: 255px 1fr 1.15fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.pmc .v2-col {
+  padding: 14px;
+}
+
+.pmc .v2-colhead {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 4px 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Area row (left column) */
+.pmc .v2-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  transition: 0.12s;
+}
+
+.pmc .v2-area:hover {
+  background: var(--surface-2);
+}
+
+.pmc .v2-area.sel {
+  background: var(--blue-soft);
+  border-color: var(--sel-border);
+}
+
+.pmc .v2-area .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pmc .v2-area .nm {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pmc .v2-area .sub {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.pmc .v2-area.sel .nm {
+  color: var(--blue-deep);
+}
+
+/* Goal card (middle column) */
+.pmc .v2-goalcard {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--blue);
+  border-radius: 13px;
+  padding: 13px 15px;
+  margin-bottom: 11px;
+  cursor: pointer;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transition: transform 0.13s ease, box-shadow 0.13s ease, border-color 0.13s ease;
+}
+
+.pmc .v2-goalcard:hover {
+  transform: translateY(-1px);
+  border-color: var(--blue);
+  box-shadow: var(--shadow-lift);
+}
+
+.pmc .v2-goalcard.sel {
+  background: var(--blue-soft);
+  border-color: var(--blue);
+}
+
+.pmc .v2-goalcard.future {
+  border-left-color: var(--purple);
+}
+
+.pmc .v2-goalcard.done-goal {
+  border-left-color: var(--line-strong);
+}
+
+.pmc .v2-goalcard .t {
+  font-weight: 700;
+  font-size: 14.5px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pmc .v2-goalcard .m {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Project label divider */
+.pmc .v2-projlabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--purple);
+  margin: 14px 4px 8px;
+  letter-spacing: 0.04em;
+}
+
+.pmc .v2-projlabel::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--purple-soft);
+}
+
+/* Section label (Goals / Future goals / etc.) */
+.pmc .v2-seclabel {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 16px 4px 8px;
+}
+
+/* Task row (right column) */
+.pmc .v2-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.pmc .v2-task:hover {
+  background: var(--surface-2);
+}
+
+/* "Next action" highlighted task */
+.pmc .v2-task.is-next {
+  border-color: var(--amber-light);
+  background: var(--amber-soft);
+}
+
+.pmc .v2-task .t-title {
+  font-size: 13.8px;
+  flex: 1;
+}
+
+/* Subtask indent */
+.pmc .v2-sub {
+  margin-left: 26px;
+  position: relative;
+}
+
+.pmc .v2-sub::before {
+  content: "";
+  position: absolute;
+  left: -13px;
+  top: 0;
+  bottom: 0;
+  border-left: 2px solid var(--line);
+}
+
+/* Crumb above task list */
+.pmc .v2-crumb {
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-bottom: 4px;
+}
+
+/* Goal header in right column */
+.pmc .v2-goalhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.pmc .v2-goalhead h3 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+/* Archived section within the right column */
+.pmc .v2-archsec {
+  margin-top: 14px;
+  border-top: 1px dashed var(--line-strong);
+  padding-top: 8px;
+}
+
+.pmc .v2-archsec .lbl {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* Empty state */
+.pmc .v2-empty {
+  color: var(--faint);
+  font-size: 13px;
+  padding: 30px 10px;
+  text-align: center;
+}
+
+/* ── Overview block (below the Areas list) ── */
+
+.pmc .ov-block {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.pmc .ov-block h4 {
+  margin: 0 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.pmc .ov-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 4px 10px;
+  font-size: 13px;
+}
+
+.pmc .ov-row .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pmc .ov-row .nm {
+  font-weight: 700;
+  width: 88px;
+  flex-shrink: 0;
+}
+
+.pmc .ov-row .ct {
+  color: var(--faint);
+  font-size: 11px;
+  width: 52px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ════════════════ Bottom row: Problems + Deadlines ════════════════ */
+
+.pmc .bottom {
+  display: grid;
+  grid-template-columns: 1fr 1.45fr;
+  gap: 18px;
+  margin-top: 18px;
+  align-items: start;
+}
+
+/* Problems panel */
+.pmc .prob-panel {
+  border-top: 3px solid var(--amber-light);
+  padding: 16px 18px;
+}
+
+.pmc .prob-panel h3,
+.pmc .dl-panel h3,
+.pmc .cal h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.pmc .prob-panel h3 {
+  color: var(--amber);
+}
+
+.pmc .prob-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.pmc .prob-row:hover {
+  background: var(--amber-soft);
+}
+
+.pmc .prob-row .x {
+  color: var(--faint);
+  border: none;
+  background: none;
+  font-size: 13px;
+  padding: 2px;
+}
+
+.pmc .prob-row .x:hover {
+  color: var(--ink);
+}
+
+/* Deadlines panel */
+.pmc .dl-panel {
+  padding: 16px 18px;
+}
+
+.pmc .dl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pmc .dl-row:hover {
+  background: var(--surface-2);
+}
+
+.pmc .dl-row .ic {
+  width: 18px;
+  text-align: center;
+  color: var(--blue);
+  flex-shrink: 0;
+}
+
+.pmc .dl-row.is-goal .ic {
+  color: var(--purple);
+}
+
+.pmc .dl-row .body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pmc .dl-row .crumb {
+  font-size: 10.5px;
+  color: var(--faint);
+  display: block;
+}
+
+.pmc .dl-row .when {
+  margin-left: auto;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.pmc .dl-row .when b {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pmc .dl-row.overdue .when {
+  color: var(--amber);
+}
+
+.pmc .dl-row.overdue .when b {
+  font-weight: 800;
+}
+
+/* ════════════════ Week planner ════════════════ */
+
+.pmc .cal {
+  margin-top: 18px;
+  padding: 16px 18px;
+}
+
+.pmc .cal-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.pmc .cal-grid {
+  display: grid;
+  grid-template-columns: 1.25fr repeat(7, 1fr);
+  gap: 10px;
+  align-items: stretch;
+  margin-top: 10px;
+}
+
+.pmc .cal-day {
+  background: var(--surface-2);
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  min-height: 140px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pool (unplanned) column */
+.pmc .cal-day.pool {
+  background: var(--base-deep);
+  border-style: solid;
+  border-color: var(--line);
+}
+
+/* Today column */
+.pmc .cal-day.today {
+  border-color: var(--blue);
+  border-style: solid;
+  background: var(--blue-soft);
+}
+
+/* Drag-over state */
+.pmc .cal-day.over {
+  outline: 2px dashed var(--blue);
+  outline-offset: -2px;
+}
+
+.pmc .cal-dayhead {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.pmc .cal-dayhead .tdy {
+  color: var(--blue);
+}
+
+/* Planned-task chip inside a day column */
+.pmc .cal-chip {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--blue);
+  border-radius: 9px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  cursor: grab;
+  font-size: 12.2px;
+}
+
+.pmc .cal-chip .ct2 {
+  font-weight: 600;
+  display: block;
+  line-height: 1.3;
+}
+
+.pmc .cal-chip .cm {
+  font-size: 10.5px;
+  color: var(--faint);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 3px;
+}
+
+.pmc .cal-chip .cm .grow {
+  flex: 1;
+}
+
+.pmc .cal-chip .cm button {
+  border: none;
+  background: none;
+  color: var(--faint);
+  font-size: 11px;
+  padding: 0 2px;
+  font-weight: 700;
+}
+
+.pmc .cal-chip .cm button:hover {
+  color: var(--blue);
+}
+
+/* ════════════════ Detail modal ════════════════ */
+
+.pmc .overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 16, 0.5);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.pmc .modal {
+  max-width: 540px;
+  width: 100%;
+  padding: 20px 22px;
+  max-height: 82vh;
+  overflow: auto;
+}
+
+.pmc .modal .crumb {
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-bottom: 6px;
+}
+
+.pmc .modal h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  letter-spacing: -0.01em;
+}
+
+.pmc .modal .chips {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.pmc .modal .sec {
+  margin-top: 16px;
+}
+
+.pmc .modal .sec .lbl {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 6px;
+}
+
+.pmc .modal .foot {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.pmc .modal select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 12.5px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.pmc .modal .sub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  font-size: 13.2px;
+}
+
+.pmc .modal .sub-row:hover {
+  background: var(--surface-2);
+}
+
+/* Add-row (inline input + button) */
+.pmc .add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pmc .add-row input {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.pmc .add-row input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+/* Problem → task convert row */
+.pmc .convert-row {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 4px 24px;
+  flex-wrap: wrap;
+}
+
+.pmc .convert-row select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 4px;
+  max-width: 170px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* ════════════════ Responsive ════════════════ */
+
+@media (max-width: 1150px) {
+  .pmc .v2-grid {
+    grid-template-columns: 220px 1fr;
+    grid-auto-rows: auto;
+  }
+
+  .pmc .v2-grid .v2-col:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .pmc .un-c {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pmc .un-card.rank0 {
+    grid-column: 1 / -1;
+  }
+
+  .pmc .bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .pmc .cal-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .pmc .cal-day.pool {
+    grid-column: 1 / -1;
+    min-height: 80px;
+  }
+}

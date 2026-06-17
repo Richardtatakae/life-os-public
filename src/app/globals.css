@@ -1,0 +1,799 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* ============================================================================
+   THEME TOKENS  (Redesign v2 §2.7)
+   ----------------------------------------------------------------------------
+   Every colour in the app now comes from a named token instead of a raw hex
+   code. A "token" is just a CSS variable like `--color-base`. Components use
+   it through Tailwind utilities (`bg-base`, `text-ink`, `border-line`) or via
+   `var(--color-base)` inside inline styles.
+
+   Why this matters: to switch themes we only redefine these tokens once here —
+   every component re-colours automatically. No component hard-codes a colour.
+
+   The values in @theme below are the DEFAULT theme = the original dark palette.
+   They are intentionally identical to the old hard-coded hex codes, so dark
+   mode looks exactly the same as before this refactor.
+
+   Light mode and the Liquid-Glass / Paper themes override these same tokens
+   under `html[data-mode="..."]` / `html[data-theme="..."]` selectors (added in
+   later steps).
+   ========================================================================== */
+
+@theme {
+  /* ---- Surfaces / backgrounds (darkest → raised) ---- */
+  --color-base:        #0e1016;   /* page background — lifted from #0a0a1a */
+  --color-base-deep:   #090a10;   /* deepest wells / insets                */
+  --color-surface:     #151823;   /* cards, panels — lifted for contrast   */
+  --color-surface-2:   #1c2030;   /* nested rows, raised cells             */
+  --color-slate:       #222840;   /* neutral slate surface / strong border */
+
+  /* ---- Borders / dividers ---- */
+  --color-line:        #2a3045;   /* default border                        */
+  --color-line-strong: #3a4258;   /* emphasised border                     */
+
+  /* ---- Text (foreground) ---- */
+  --color-ink:         #f5f5f7;   /* primary text                          */
+  --color-muted:       #9ca3af;   /* secondary text                        */
+  --color-faint:       #6b7280;   /* tertiary / disabled text              */
+
+  /* ---- Accents ---- */
+  --color-emerald:      #10b981;  /* success / primary action / habits ring */
+  --color-emerald-deep: #059669;
+  --color-amber:        #f59e0b;  /* warning / tasks ring                   */
+  --color-amber-light:  #fbbf24;
+  --color-amber-soft:   #f59e0b44;/* amber @ ~27% (filled-but-not-done)     */
+  --color-mythic:       #38bdf8;  /* habit 'Mythical' summit tier — blue    */
+                                  /* iridescent, opposite gold on the safe   */
+                                  /* blue↔yellow axis (red-green safe)        */
+  --color-red:          #ef4444;  /* danger / schedule ring                 */
+  --color-red-deep:     #2a1a1a;  /* dark red-tinted background             */
+  --color-purple:       #6c5ce0;  /* xp / highlight — cooler indigo-violet  */
+  --color-purple-deep:  #5548c4;
+  --color-violet:       #8b5cf6;
+  --color-lime:         #84cc16;  /* "mastered" streak stage                */
+  --color-pink:         #ec4899;
+  --color-blue:         #3b82f6;
+  --color-steel:        #5d7a9e;  /* steel blue — muted grouping accent     */
+
+  /* ---- Control-contrast tokens (toggles / buttons OFF / idle state) ---- */
+  --color-control:        #2a3248; /* visible track colour — NOT near-black  */
+  --color-control-border: #3a4460; /* border ring around idle controls       */
+
+  /* ---- Elevation / shadow tokens ---- */
+  --shadow-card: 0 1px 2px rgba(20,26,43,.06), 0 2px 6px rgba(20,26,43,.08);
+  --shadow-pop:  0 6px 16px rgba(20,26,43,.14), 0 18px 50px rgba(20,26,43,.20);
+  --carve:       inset 0 2px 5px rgba(20,26,43,.14), inset 0 -1px 0 rgba(255,255,255,.06);
+
+  /* ---- Fonts (loaded via next/font in layout in a later pass) ---- */
+  --font-display: "Geist", system-ui, sans-serif;
+  --font-body:    "Geist", system-ui, sans-serif;
+  --font-mono:    "Geist Mono", monospace;
+}
+
+/* ----------------------------------------------------------------------------
+   LIGHT MODE — current theme.
+   Only the NEUTRALS flip (backgrounds become light, text becomes dark, borders
+   become dark-but-subtle). Accent colours (emerald/amber/red/purple/…) stay the
+   same vivid values: they read fine on both light and dark surfaces, and many
+   are used as button fills with white/black text that must keep working.
+   `ink` becoming dark is what makes every translucent `*-ink/NN` border, overlay
+   and faint-text utility automatically correct on a light background.
+   -------------------------------------------------------------------------- */
+html[data-mode="light"] {
+  --color-base:        #f4f5fb;   /* page background — soft cool white */
+  --color-base-deep:   #e8eaf3;   /* deepest wells / insets           */
+  --color-surface:     #ffffff;   /* cards, panels, modals            */
+  --color-surface-2:   #eef0f7;   /* nested rows, raised cells        */
+  --color-slate:       #e3e6ee;   /* neutral slate surface            */
+
+  --color-line:        #d3d8e2;   /* default border                   */
+  --color-line-strong: #b2b9c8;   /* emphasised border                */
+
+  --color-ink:         #16182a;   /* primary text (near-black, cool)  */
+  --color-muted:       #565e70;   /* secondary text                   */
+  --color-faint:       #858da0;   /* tertiary / disabled text         */
+  /* accents intentionally inherit the dark-theme values from @theme */
+
+  /* ---- Light-mode overrides for tokens with dark defaults ---- */
+  --color-steel:          #4a6a90; /* slightly darker on white          */
+  --color-control:        #e4e7f0; /* light-mode idle track             */
+  --color-control-border: #c8cedc; /* light-mode idle border            */
+
+  /* ---- Elevation / shadow tokens — lighter on bright bg ---- */
+  --shadow-card: 0 1px 2px rgba(20,26,43,.04), 0 2px 6px rgba(20,26,43,.05);
+  --shadow-pop:  0 6px 16px rgba(20,26,43,.10), 0 18px 50px rgba(20,26,43,.16);
+  --carve:       inset 0 2px 5px rgba(20,26,43,.10), inset 0 -1px 0 rgba(255,255,255,.65);
+}
+
+html, body {
+  background: var(--color-base);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* ============================================================================
+   VOW MODE — global chrome (VowBar + gold frame + content dim)
+   ----------------------------------------------------------------------------
+   When a vow is active, VowBar adds `vow-active` to <html> and
+   `vow-dim-content` to <body> (when not on the tasks tab). These rules:
+     1. Push page content down so the fixed VowBar (40px / 2.5rem) never
+        covers it.
+     2. Paint a fixed amber border + soft glow around the entire viewport
+        (z-[140] — below VowBar at 150 but above normal content; pointer-
+        events-none so it never blocks clicks).
+     3. Dim non-task content — saturate + opacity — with a smooth transition.
+        Applied to a sibling pseudo-element on body so the vow chrome itself
+        (z ≥ 150) is unaffected.
+   Amber token values match the @theme block above and adapt to all themes.
+   ========================================================================== */
+
+/* ── Push content below the VowBar ── */
+html.vow-active body {
+  padding-top: 2.5rem; /* 40px — matches the bar height */
+}
+
+/* ── Gold viewport frame (pointer-events-none fixed inset) ── */
+html.vow-active::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  pointer-events: none;
+  border: 2px solid var(--color-amber);
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 18px rgba(245, 158, 11, 0.18),
+    0 0 18px rgba(245, 158, 11, 0.12);
+  transition: opacity 0.4s ease;
+}
+
+/* ── Dim non-tasks content ── */
+/* We use a pseudo-element on body so only content beneath the vow chrome
+   is dimmed — the chrome (z ≥ 150) sits above and is unaffected. */
+body.vow-dim-content::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 130; /* above normal content, below gold frame (140) */
+  pointer-events: none;
+  background: transparent;
+  /* The "saturate + opacity" feel is achieved with a subtle dark overlay */
+  background: rgba(0, 0, 0, 0.20);
+  backdrop-filter: saturate(0.55) opacity(0.95);
+  -webkit-backdrop-filter: saturate(0.55) opacity(0.95);
+  transition: opacity 0.35s ease, backdrop-filter 0.35s ease;
+}
+
+/* ============================================================================
+   GLASS THEMES  — "Liquid Glass" and "Vibrant Tinted"  (Redesign v2 §2.7)
+   ----------------------------------------------------------------------------
+   These two themes are translucent: panels frost whatever colourful background
+   sits behind them (backdrop-filter blur). The effect is delivered by:
+     1. a vivid gradient painted on <body>,
+     2. the page/dashboard roots (.app-root) made transparent so the gradient
+        shows through,
+     3. the .panel / .panel-bar marker classes getting a frosted glass surface,
+        border, blur and shadow (the --glass-* variables below).
+   Current and Paper themes don't define these rules, so .panel is inert there
+   and those themes look exactly as their own tokens dictate.
+
+   Theme × mode matrix:
+     Liquid Glass : dark = "Deep Frosted"  · light = "Clear & Light"
+     Vibrant      : dark = "Vibrant Tinted"· light = bright tinted glass
+   ========================================================================== */
+
+/* ---- shared: frosted panel + bar + transparent roots ---- */
+html[data-theme="liquid"] .panel,
+html[data-theme="vibrant"] .panel {
+  background: var(--glass-surface) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--glass-radius) !important;
+  box-shadow: var(--glass-shadow) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+}
+html[data-theme="liquid"] .panel-bar,
+html[data-theme="vibrant"] .panel-bar {
+  background: var(--glass-surface) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+}
+html[data-theme="liquid"] .app-root,
+html[data-theme="vibrant"] .app-root {
+  background: transparent !important;
+}
+
+/* ============================ LIQUID GLASS ============================ */
+/* -- dark: "Deep Frosted" -- */
+html[data-theme="liquid"] {
+  --color-ink:#f4f7ff; --color-muted:#aab2c8; --color-faint:#7e87a0;
+  --color-base:#131229;                       /* inputs / text-on-accent */
+  --color-surface:rgba(255,255,255,.06);      /* rows, chips             */
+  --color-surface-2:rgba(255,255,255,.10);
+  --color-slate:rgba(255,255,255,.12);
+  --color-line:rgba(255,255,255,.10);
+  --color-line-strong:rgba(255,255,255,.20);
+
+  --glass-blur:26px; --glass-radius:20px;
+  --glass-surface:linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,0) 42%), rgba(22,24,48,.48);
+  --glass-border:rgba(255,255,255,.16);
+  --glass-shadow:0 14px 44px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.28);
+}
+html[data-theme="liquid"] body {
+  background:
+    radial-gradient(1100px 750px at 82% 8%,  rgba(56,189,248,.38), transparent 60%),
+    radial-gradient(950px 850px at 12% 28%,  rgba(99,102,241,.48), transparent 60%),
+    radial-gradient(900px 850px at 55% 120%, rgba(16,185,129,.30), transparent 55%),
+    linear-gradient(160deg,#0a0a1f 0%, #0c0a1c 48%, #08110f 100%);
+  background-attachment:fixed;
+}
+/* -- light: "Clear & Light" -- */
+html[data-theme="liquid"][data-mode="light"] {
+  --color-ink:#1a1c2e; --color-muted:#515a6e; --color-faint:#828ba0;
+  --color-base:#ffffff;
+  --color-surface:rgba(255,255,255,.55);
+  --color-surface-2:rgba(255,255,255,.40);
+  --color-slate:rgba(20,30,60,.06);
+  --color-line:rgba(20,30,60,.10);
+  --color-line-strong:rgba(20,30,60,.18);
+
+  --glass-blur:20px; --glass-radius:20px;
+  --glass-surface:linear-gradient(135deg, rgba(255,255,255,.65), rgba(255,255,255,.35) 60%), rgba(255,255,255,.5);
+  --glass-border:rgba(255,255,255,.75);
+  --glass-shadow:0 10px 30px rgba(70,80,130,.20), inset 0 1px 0 rgba(255,255,255,.9);
+}
+html[data-theme="liquid"][data-mode="light"] body {
+  background:
+    radial-gradient(720px 520px at 6% -2%,  rgba(168,85,247,.42), transparent 55%),
+    radial-gradient(680px 520px at 102% 4%, rgba(16,185,129,.36), transparent 55%),
+    radial-gradient(820px 660px at 78% 102%,rgba(59,130,246,.42), transparent 58%),
+    radial-gradient(620px 520px at 26% 98%, rgba(236,72,153,.30), transparent 55%),
+    radial-gradient(540px 460px at 52% 42%, rgba(245,158,11,.20), transparent 60%),
+    linear-gradient(160deg,#f3f5fc,#e3e9f6);
+  background-attachment:fixed;
+}
+
+/* ============================ VIBRANT TINTED ============================ */
+/* -- dark -- */
+html[data-theme="vibrant"] {
+  --color-ink:#f7f8ff; --color-muted:#bcc2da; --color-faint:#8b93b3;
+  --color-base:#15122b;
+  --color-surface:rgba(255,255,255,.07);
+  --color-surface-2:rgba(255,255,255,.11);
+  --color-slate:rgba(255,255,255,.14);
+  --color-line:rgba(255,255,255,.12);
+  --color-line-strong:rgba(255,255,255,.22);
+
+  --glass-blur:24px; --glass-radius:24px;
+  --glass-surface:linear-gradient(115deg, rgba(255,255,255,.18) 0%, transparent 32%), linear-gradient(150deg, rgba(255,255,255,.10), rgba(28,24,55,.55));
+  --glass-border:rgba(255,255,255,.20);
+  --glass-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 12px 32px rgba(0,0,0,.5), 0 32px 64px rgba(0,0,0,.32);
+}
+html[data-theme="vibrant"] body {
+  background:
+    radial-gradient(700px 500px at 0% 0%,    rgba(168,85,247,.60), transparent 55%),
+    radial-gradient(700px 500px at 100% 0%,  rgba(59,130,246,.55), transparent 55%),
+    radial-gradient(800px 600px at 100% 100%,rgba(16,185,129,.50), transparent 55%),
+    radial-gradient(800px 600px at 0% 100%,  rgba(236,72,153,.45), transparent 55%),
+    #0a0816;
+  background-attachment:fixed;
+}
+/* -- light -- */
+html[data-theme="vibrant"][data-mode="light"] {
+  --color-ink:#1a1c2e; --color-muted:#535b72; --color-faint:#828aaa;
+  --color-base:#ffffff;
+  --color-surface:rgba(255,255,255,.50);
+  --color-surface-2:rgba(255,255,255,.35);
+  --color-slate:rgba(20,30,60,.06);
+  --color-line:rgba(20,30,60,.10);
+  --color-line-strong:rgba(20,30,60,.18);
+
+  --glass-blur:22px; --glass-radius:24px;
+  --glass-surface:linear-gradient(115deg, rgba(255,255,255,.55) 0%, transparent 34%), linear-gradient(150deg, rgba(255,255,255,.58), rgba(255,255,255,.42));
+  --glass-border:rgba(255,255,255,.8);
+  --glass-shadow:inset 0 1px 0 rgba(255,255,255,.95), 0 10px 28px rgba(80,70,140,.18), 0 26px 50px rgba(80,70,140,.12);
+}
+html[data-theme="vibrant"][data-mode="light"] body {
+  background:
+    radial-gradient(700px 500px at 0% 0%,    rgba(168,85,247,.40), transparent 55%),
+    radial-gradient(700px 500px at 100% 0%,  rgba(59,130,246,.38), transparent 55%),
+    radial-gradient(800px 600px at 100% 100%,rgba(16,185,129,.34), transparent 55%),
+    radial-gradient(800px 600px at 0% 100%,  rgba(236,72,153,.32), transparent 55%),
+    linear-gradient(160deg,#eef1fb,#e6ecf8);
+  background-attachment:fixed;
+}
+
+/* ---- Vibrant per-panel accent tints (match the V3 mockup) ----
+   Each panel carries a second class (tint-purple / tint-amber / …) next to
+   `panel`. These rules set a per-panel --panel-tint and re-paint the frosted
+   surface with that colour mixed in. They come AFTER the shared .panel rule
+   above, so the later !important wins. Inert in every non-vibrant theme. */
+html[data-theme="vibrant"] .panel {
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.18) 0%, transparent 32%),
+    linear-gradient(150deg, var(--panel-tint, rgba(255,255,255,.10)), rgba(28,24,55,.55)) !important;
+}
+html[data-theme="vibrant"][data-mode="light"] .panel {
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.55) 0%, transparent 34%),
+    linear-gradient(150deg, var(--panel-tint, rgba(255,255,255,.55)), rgba(255,255,255,.42)) !important;
+}
+html[data-theme="vibrant"] .tint-purple  { --panel-tint: rgba(168,85,247,.24); }
+html[data-theme="vibrant"] .tint-amber   { --panel-tint: rgba(245,158,11,.24); }
+html[data-theme="vibrant"] .tint-emerald { --panel-tint: rgba(16,185,129,.22); }
+html[data-theme="vibrant"] .tint-blue    { --panel-tint: rgba(59,130,246,.24); }
+html[data-theme="vibrant"] .tint-pink    { --panel-tint: rgba(236,72,153,.24); }
+html[data-theme="vibrant"] .tint-red     { --panel-tint: rgba(239,68,68,.22); }
+
+/* ============================================================================
+   PAPER THEMES — "Notebook", "Bullet Journal", "Aged Manuscript"  (§2.7)
+   ----------------------------------------------------------------------------
+   Hand-drawn / printed-paper looks. Unlike the glass themes these are OPAQUE:
+   the page texture (ruled lines / dot grid / parchment) is painted on <body>,
+   the app roots are made transparent so it shows through, and each .panel
+   becomes a paper "card" (vellum fill, themed border, soft drop shadow, NO
+   blur). Body text switches to a handwriting / serif font via --font-body
+   (the actual font files are loaded by next/font in layout.tsx).
+
+   Per theme: a dark base block (selected when no mode attr / dark) + a
+   [data-mode="light"] block that flips only the neutrals. The muted earthy
+   accents are defined once in the dark block and inherited by light.
+   Adapted from the mockups: panels are NOT tilted (would break the resizable
+   mosaic), and the Notebook red margin line / Bujo per-panel washi tape are
+   omitted (they clash with real panel headers). The .panel marker class is
+   inert in Current/glass themes, so these rules only fire under paper-*.
+   ========================================================================== */
+
+/* shared paper grain (a faint monochrome noise) reused by every paper body */
+:root {
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* ---- shared across all three paper themes ---- */
+html[data-theme="paper-notebook"] .app-root,
+html[data-theme="paper-bujo"] .app-root,
+html[data-theme="paper-manuscript"] .app-root { background: transparent !important; }
+
+html[data-theme="paper-notebook"] .panel-bar,
+html[data-theme="paper-bujo"] .panel-bar,
+html[data-theme="paper-manuscript"] .panel-bar {
+  background: transparent !important;
+  border-bottom: 1px solid var(--color-line) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+/* let the body texture show through the dashboard mosaic panes */
+html[data-theme="paper-notebook"] .mosaic-life-os .mosaic-window-body,
+html[data-theme="paper-bujo"] .mosaic-life-os .mosaic-window-body,
+html[data-theme="paper-manuscript"] .mosaic-life-os .mosaic-window-body { background: transparent !important; }
+
+/* ============================ NOTEBOOK ============================ */
+/* -- dark: charcoal-blue ruled page, off-white ink -- */
+html[data-theme="paper-notebook"] {
+  --color-ink:#e7ebf2; --color-muted:#9aa6ba; --color-faint:#6f7c92;
+  --color-base:#161b27; --color-base-deep:#11151f;
+  --color-surface:#1d2330; --color-surface-2:#262d3c; --color-slate:#2c3445;
+  --color-line:#333c4f; --color-line-strong:#46516a;
+  --color-emerald:#5bbd93; --color-emerald-deep:#3f9d77;
+  --color-amber:#e0b15a; --color-amber-light:#f0c877; --color-amber-soft:#e0b15a44;
+  --color-red:#e08a86; --color-red-deep:#3a2526;
+  --color-purple:#b39ae0; --color-purple-deep:#9a7fd0; --color-violet:#a78bdb;
+  --color-pink:#dd95b6; --color-blue:#7fa8e0; --color-lime:#a6c96a;
+  --font-body: var(--font-kalam), "Comic Sans MS", cursive;
+  --paper-rule: rgba(150,170,210,.12);
+  --paper-stroke:#5b6780;
+}
+html[data-theme="paper-notebook"] body {
+  background-color: var(--color-base);
+  background-image:
+    repeating-linear-gradient(transparent, transparent 31px, var(--paper-rule) 31px, var(--paper-rule) 32px),
+    var(--paper-grain);
+  background-attachment: fixed;
+}
+/* -- light: cream ruled page, dark ink -- */
+/* Backgrounds are cool NEUTRAL WHITE (not the old warm cream) so the page reads
+   as genuinely white — warm off-whites read as muddy brown/green under a
+   red-green colour weakness. The blue ruled lines + ink stroke are kept. */
+html[data-theme="paper-notebook"][data-mode="light"] {
+  /* Mockup-faithful (paper-v1-ruled-notebook.html): cream page #fbf8ef,
+     dark-pencil ink #2a3340, light-pencil muted, faint blue ruled line. */
+  --color-ink:#2a3340; --color-muted:#6b7280; --color-faint:#8a8f99;
+  --color-base:#fbf8ef; --color-base-deep:#f1ecdd;
+  --color-surface:#fdfbf4; --color-surface-2:#f6f1e4; --color-slate:#ebe5d5;
+  --color-line:#e3ddca; --color-line-strong:#d2cab2;
+  --paper-rule: rgba(160,178,210,.40);
+  --paper-stroke:#2a3340;
+}
+/* -- shared notebook panel: hand-drawn wobbly card -- */
+html[data-theme="paper-notebook"] .panel {
+  background: var(--color-surface) !important;
+  border: 2.5px solid var(--paper-stroke) !important;
+  border-radius: 255px 12px 225px 15px / 14px 225px 18px 255px !important;
+  box-shadow: 2px 3px 0 color-mix(in srgb, var(--paper-stroke) 20%, transparent) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+
+/* ============================ BULLET JOURNAL ============================ */
+/* -- dark: charcoal dot grid, bright marker accents -- */
+html[data-theme="paper-bujo"] {
+  --color-ink:#e8eaf0; --color-muted:#9ea4b2; --color-faint:#71788a;
+  --color-base:#191b22; --color-base-deep:#141519;
+  --color-surface:#212530; --color-surface-2:#2a2f3c; --color-slate:#313747;
+  --color-line:#343a49; --color-line-strong:#485063;
+  --color-emerald:#43c08a; --color-emerald-deep:#2f9e6f;
+  --color-amber:#efb84a; --color-amber-light:#f6cd6e; --color-amber-soft:#efb84a44;
+  --color-red:#ec7b72; --color-red-deep:#3a2322;
+  --color-purple:#a988e6; --color-purple-deep:#8a5cd0; --color-violet:#9d7fe0;
+  --color-pink:#e588b3; --color-blue:#6fa3e8; --color-lime:#9fcf5c;
+  --font-body: var(--font-patrick), "Comic Sans MS", cursive;
+  --paper-dot: rgba(255,255,255,.10);
+}
+html[data-theme="paper-bujo"] body {
+  background-color: var(--color-base);
+  background-image: radial-gradient(var(--paper-dot) 1.6px, transparent 1.6px);
+  background-size: 22px 22px; background-position: -1px -1px;
+  background-attachment: fixed;
+}
+/* -- light: bright dot grid -- */
+/* Cool neutral white backgrounds (was warm ivory) — see notebook note above. */
+html[data-theme="paper-bujo"][data-mode="light"] {
+  /* Mockup-faithful (paper-v2-bullet-journal.html): near-white page #fdfdfa,
+     sticky-note cards #fffef7, soft grey dot grid. */
+  --color-ink:#33373f; --color-muted:#7b818c; --color-faint:#a0a5af;
+  --color-base:#fdfdfa; --color-base-deep:#f2f2ed;
+  --color-surface:#fffef7; --color-surface-2:#f6f6f0; --color-slate:#e9e9e2;
+  --color-line:#e2e2db; --color-line-strong:#d0d0c8;
+  --paper-dot: rgba(160,168,185,.50);
+}
+/* -- shared bujo panel: sticky note (square corners, lifted shadow) -- */
+html[data-theme="paper-bujo"] .panel {
+  background: var(--color-surface) !important;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent) !important;
+  border-radius: 4px !important;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-ink) 5%, transparent),
+    0 10px 20px color-mix(in srgb, var(--color-ink) 16%, transparent) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+
+/* ============================ AGED MANUSCRIPT ============================ */
+/* -- dark: candlelit dark leather, cream ink -- */
+html[data-theme="paper-manuscript"] {
+  --color-ink:#e8dcc4; --color-muted:#b3a484; --color-faint:#8a7c61;
+  --color-base:#211a11; --color-base-deep:#1a140c;
+  --color-surface:#2a2216; --color-surface-2:#332a1c; --color-slate:#3a3022;
+  --color-line:#473a26; --color-line-strong:#5c4c32;
+  --color-emerald:#8aa878; --color-emerald-deep:#6e9162;
+  --color-amber:#d2a455; --color-amber-light:#e0bb78; --color-amber-soft:#d2a45544;
+  --color-red:#cf7d72; --color-red-deep:#2f1f18;
+  --color-purple:#ad96bf; --color-purple-deep:#9a82b0; --color-violet:#a892bb;
+  --color-pink:#cc94aa; --color-blue:#8aa3c4; --color-lime:#b3bf78;
+  --font-body: var(--font-cormorant), Georgia, serif;
+}
+html[data-theme="paper-manuscript"] body {
+  background-color: var(--color-base);
+  background-image:
+    radial-gradient(80% 60% at 50% 40%, transparent 55%, rgba(0,0,0,.4) 100%),
+    var(--paper-grain);
+  background-attachment: fixed;
+}
+/* -- light: aged parchment with vignette + foxing (left stain removed) -- */
+/* Cool neutral white background + neutral (non-brown) ink. The warm parchment
+   tan + brown vignette/foxing read as brown/green under a red-green colour
+   weakness, so light-mode Manuscript is now clean white; the deckled card
+   borders + serif font keep its character. (Dark Manuscript is unchanged.) */
+html[data-theme="paper-manuscript"][data-mode="light"] {
+  /* Mockup-faithful (paper-v3-aged-manuscript.html): aged parchment page
+     #efe4cb, lighter vellum cards #f6eed9, sepia ink #3a2e1f, faded-ink muted,
+     warm hairline rule. */
+  --color-ink:#3a2e1f; --color-muted:#6c5b41; --color-faint:#8a795c;
+  --color-base:#efe4cb; --color-base-deep:#e6dabd;
+  --color-surface:#f6eed9; --color-surface-2:#efe6cf; --color-slate:#e0d4b6;
+  --color-line:#cdbf9d; --color-line-strong:#b8a87f;
+}
+html[data-theme="paper-manuscript"][data-mode="light"] body {
+  background-color: var(--color-base);
+  background-image:
+    radial-gradient(80% 60% at 50% 40%, transparent 60%, rgba(110,85,50,.10) 100%),
+    var(--paper-grain);
+  background-attachment: fixed;
+}
+/* ── Cursor: every interactive element shows the pointer (finger), not the
+   default arrow. Disabled controls keep the default arrow on purpose, so a
+   greyed-out/done control still reads as "not clickable". Custom clickable
+   spans/divs in components already carry Tailwind's `cursor-pointer`. ── */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"],
+a[href],
+select:not(:disabled),
+summary,
+label[for],
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+/* -- shared manuscript panel: deckled vellum card, hairline border -- */
+html[data-theme="paper-manuscript"] .panel {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-line) !important;
+  border-radius: 6px 5px 7px 4px !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent),
+    0 8px 22px color-mix(in srgb, var(--color-ink) 16%, transparent) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+
+/* ============================================================================
+   ALMANAC THEME — "The Almanac"  (from mockups/distill-B-almanac.html)
+   ----------------------------------------------------------------------------
+   A warm printed-paper / newspaper-front-page look: an off-white paper page,
+   crisp white cards ruled with hairlines, serif headings, and a signature
+   bronze accent. Each widget gets a thin coloured top-rule (driven by the
+   tint-* class it already carries) so the dashboard reads like an almanac
+   spread — glanceable, sectioned, set-in-type.
+
+   OPAQUE like the paper themes (no blur). The warm-paper tokens are defined at
+   the THEME level (not gated on mode) so the Almanac stays warm-light even if
+   the sun/moon toggle is flipped to dark — a dark warm palette reads as muddy
+   brown/green under a red-green colour weakness, which this theme avoids by
+   design (warm LIGHT tones are safe; muddy dark ones are the real risk).
+
+   Accents map the app's token slots onto the mockup's muted warm palette:
+     emerald → teal (success / habits / primary action)
+     amber   → amber (tasks / streaks / warnings)
+     red     → orange (schedule / urgent — a warm "danger", not true red)
+     purple  → plum (xp / rewards / highlight)
+     blue    → slate (focus)
+   The signature bronze (--almanac-accent) is injected through the card top-rule
+   and serif headings rather than a token, since the app has no generic accent
+   slot.
+   ========================================================================== */
+html[data-theme="almanac"] {
+  /* signature bronze + the serif used for headings (Cormorant is loaded by
+     next/font in layout.tsx and exposed as --font-cormorant). */
+  --almanac-accent:#B5762A;
+  /* Same serif stack the Schedule module (DayPlanner) uses for its headings. */
+  --almanac-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+
+  /* ---- neutrals: warm paper page + white cards + ink ---- */
+  --color-ink:#2B2723; --color-muted:#5C554C; --color-faint:#8A8175;
+  --color-base:#FBF9F5; --color-base-deep:#F4F0E8;
+  --color-surface:#ffffff; --color-surface-2:#F4F0E8; --color-slate:#EFEADF;
+  --color-line:#E7E0D5; --color-line-strong:#D8CEBD;
+
+  /* ---- accents: muted warm almanac palette ---- */
+  --color-emerald:#2E7268; --color-emerald-deep:#245A52;
+  --color-amber:#B8861A; --color-amber-light:#CA9A2E; --color-amber-soft:#B8861A44;
+  --color-red:#BE5F1E; --color-red-deep:#F8E2CF;
+  --color-purple:#6B5187; --color-purple-deep:#574170; --color-violet:#7D63A0;
+  --color-pink:#B0688A; --color-blue:#44607A; --color-lime:#8A9A3A;
+}
+
+/* let the paper page show through the app + dashboard mosaic shells */
+html[data-theme="almanac"] .app-root { background: transparent !important; }
+html[data-theme="almanac"] .mosaic-life-os .mosaic-window-body { background: transparent !important; }
+
+/* warm paper page with a whisper of grain */
+html[data-theme="almanac"] body {
+  background-color: var(--color-base);
+  background-image: var(--paper-grain);
+  background-attachment: fixed;
+}
+
+/* masthead-style top bar: double rule under the tab strip, serif feel */
+html[data-theme="almanac"] .panel-bar {
+  background: var(--color-base) !important;
+  border-bottom: 3px double var(--color-ink) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+
+/* serif, newspaper-style headings throughout the theme */
+html[data-theme="almanac"] h1,
+html[data-theme="almanac"] h2,
+html[data-theme="almanac"] h3 {
+  font-family: var(--almanac-serif);
+  letter-spacing: -.01em;
+}
+
+/* ---- card = crisp white paper with hairline rule + bronze top-rule ---- */
+html[data-theme="almanac"] .panel {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-line) !important;
+  border-top: 3px solid var(--almanac-accent) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(80,70,50,.06), 0 6px 18px rgba(80,70,50,.05) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+
+/* each widget's top-rule takes the colour of the tint-* class it already
+   carries — so the dashboard reads as colour-coded almanac sections. */
+html[data-theme="almanac"] .panel.tint-emerald { border-top-color: var(--color-emerald) !important; }
+html[data-theme="almanac"] .panel.tint-amber   { border-top-color: var(--color-amber) !important; }
+html[data-theme="almanac"] .panel.tint-red     { border-top-color: var(--color-red) !important; }
+html[data-theme="almanac"] .panel.tint-purple  { border-top-color: var(--color-purple) !important; }
+html[data-theme="almanac"] .panel.tint-blue    { border-top-color: var(--color-blue) !important; }
+html[data-theme="almanac"] .panel.tint-pink    { border-top-color: var(--color-pink) !important; }
+
+/* ============================================================================
+   CLEAN MODERN THEME — the calm-light, single-accent redesign (translated from
+   a standalone HTML export)
+   ----------------------------------------------------------------------------
+   A calm, premium, cool near-white look with a single confident BLUE accent
+   and an AMBER attention pole — never red↔green, so it sits on the safe side of
+   a red-green colour weakness. Urgency/danger collapses into amber exactly as
+   the source design intends (warm light amber reads fine; dark/muddy tones are
+   the real risk).
+
+   OPAQUE and LIGHT (no blur). Tokens are defined at the THEME level (not gated
+   on mode), so the theme stays cool-light even if the sun/moon toggle is
+   flipped — the source design is light-only by intent (the ThemeSwitcher also
+   auto-selects light mode when Clean Modern is picked).
+
+   Accent mapping (the source's single-accent approach → the app's token slots):
+     emerald → blue   (primary action / habits ring / done-checks all go blue)
+     blue    → blue
+     amber   → amber  (tasks ring + attention: due / behind / now)
+     red     → steel blue  (schedule ring; red-green-safe — kept OFF the warm
+                axis so it can't blur against the amber tasks ring, per the
+                blue↔yellow + brightness rule)
+     purple  → cool indigo (xp / rewards)
+   Body type switches to Hanken Grotesk (exposed as --font-hanken by layout.tsx).
+   ========================================================================== */
+html[data-theme="clean-modern"] {
+  /* ---- neutrals: deeper mid-grey page + greyer raised cards + ink ---- */
+  --color-ink:#181b2a; --color-muted:#5e6678; --color-faint:#8b92a4;
+  --color-base:#d8dce6; --color-base-deep:#cdd1dd;
+  --color-surface:#e8ebf2; --color-surface-2:#dfe3ec; --color-slate:#d4d8e3;
+  --color-line:#c8ccda; --color-line-strong:#b8bccb;
+
+  /* elevation — defined here so light mode doesn't fall back to @theme defaults */
+  --shadow-card: 0 1px 3px rgba(30,36,60,.10), 0 3px 10px rgba(30,36,60,.12);
+  --shadow-pop:  0 6px 18px rgba(30,36,60,.18), 0 16px 40px rgba(30,36,60,.22);
+  --carve:       inset 0 1px 3px rgba(30,36,60,.12), inset 0 -1px 0 rgba(255,255,255,.55);
+
+  /* ---- accents: one confident blue + an amber attention pole (red-free) ---- */
+  --color-emerald:#2f6df6; --color-emerald-deep:#2156d6;
+  --color-blue:#2f6df6;
+  --color-amber:#c47f12; --color-amber-light:#eaa531; --color-amber-soft:#c47f1233;
+  --color-red:#5d7a9e; --color-red-deep:#e7ecf3;
+  --color-purple:#6c5ce0; --color-purple-deep:#574fb6; --color-violet:#7d74e0;
+  --color-pink:#c2548a; --color-lime:#c7a42c;
+
+  /* body type — Hanken Grotesk, the source design's sans (loaded in layout.tsx) */
+  --font-body: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  /* serif for reading surfaces (journal, distilled) — Newsreader, loaded in layout.tsx */
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+}
+
+/* ── Clean Modern · dark-mode overrides ───────────────────────────────────────
+   Higher specificity (theme + mode) wins over the base block above.
+   Fonts inherit from the base block — only --color-* tokens are overridden.
+   Palette: cool near-black bg, crisp off-white ink, same blue/amber accent poles.
+   ──────────────────────────────────────────────────────────────────────────── */
+html[data-theme="clean-modern"][data-mode="dark"] {
+  --color-ink:#f2f4fa; --color-muted:#a4abbb; --color-faint:#71788a;
+  --color-base:#0f1117; --color-base-deep:#090b10;
+  --color-surface:#1c2030; --color-surface-2:#222739; --color-slate:#272d40;
+  --color-line:#2d3448; --color-line-strong:#3d4560;
+
+  --color-emerald:#4d8bff; --color-emerald-deep:#3a72e8;
+  --color-blue:#4d8bff;
+  --color-amber:#e6a534; --color-amber-light:#f3bd57; --color-amber-soft:#e6a5341f;
+  --color-red:#7e93b0; --color-red-deep:#222834;
+  --color-purple:#8c7df2; --color-purple-deep:#6f63d6; --color-violet:#9a90f2;
+  --color-pink:#e07aae; --color-lime:#d4bd4a;
+
+  /* brighter steel in dark for clean-modern */
+  --color-steel:#7a9abf;
+
+  /* control contrast — raised so idle toggles/buttons are visible on dark bg */
+  --color-control:        #232a3a;
+  --color-control-border: #323c52;
+
+  /* elevation — strong shadows: dark bg needs more punch to read contrast */
+  --shadow-card: 0 1px 4px rgba(0,0,0,.40), 0 4px 12px rgba(0,0,0,.50);
+  --shadow-pop:  0 8px 24px rgba(0,0,0,.60), 0 20px 56px rgba(0,0,0,.70);
+  --carve:       inset 0 2px 5px rgba(0,0,0,.50), inset 0 -1px 0 rgba(255,255,255,.05);
+}
+
+/* card = raised surface, hairline rule, token-driven shadow + smooth hover lift */
+html[data-theme="clean-modern"] .panel {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-line) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--shadow-card) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+html[data-theme="clean-modern"] .panel:hover {
+  box-shadow: var(--shadow-pop) !important;
+  transform: translateY(-2px);
+}
+
+/* top bar: crisp white surface with a hairline rule under the tab strip (the
+   page tone below is the slightly-cooler base, so the bar reads as a clean
+   masthead — matches the source design's white .topnav over a grey page). */
+html[data-theme="clean-modern"] .panel-bar {
+  background: var(--color-surface) !important;
+  border-bottom: 1px solid var(--color-line) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+
+/* ── Habit "Legend" tier (top rung of the level ladder) ──
+   The animated gold→emerald shimmer for a Legend habit's re-basing bar. Kept in
+   CSS (not inline) so the keyframes can run; the level module flags isLegend and
+   the tracker cell adds .habit-legend-fill. Brightness-based, red-free. */
+@keyframes habit-legend-shimmer {
+  to { background-position: -200% 0; }
+}
+.habit-legend-fill {
+  background: linear-gradient(90deg, var(--color-amber-light), var(--color-emerald), var(--color-amber-light));
+  background-size: 200% 100%;
+  animation: habit-legend-shimmer 2.4s linear infinite;
+}
+
+/* ── Habit "Mythical" tier (the summit, above Legend) ──
+   The animated blue→violet iridescent shimmer for a Mythical habit's re-basing
+   bar. Reuses the legend shimmer keyframe; blue-iridescent so it stays distinct
+   from the gold Legend tier on the red-green-safe blue↔yellow axis. */
+.habit-mythic-fill {
+  background: linear-gradient(90deg, var(--color-mythic), #c4b5fd, var(--color-mythic));
+  background-size: 200% 100%;
+  animation: habit-legend-shimmer 2.4s linear infinite;
+}
+
+/* ── Dashboard bento (Clean-Modern redesign Phase C2) ──────────────────────────
+   The fixed bento grid for the Dashboard tab — a 3-column mosaic of 6 summary
+   cards. Card CHROME is Tailwind utilities + tokens (theme-aware) on each card;
+   only the GRID PLACEMENT + the density rule live here (placement spans are
+   awkward in utility classes, and density gates many scattered nodes at once).
+
+   Layout (matches design_handoff LifeOS Dashboard.html .bento):
+     col 1 (wider) | col 2 | col 3
+     ┌─────────┬───────────────────┐
+     │ Habits  │      Plan         │   row 1   (Habits spans rows 1-2 = tall hero)
+     │ (hero)  ├─────────┬─────────┤
+     │         │  Goals  │  Tasks  │   row 2
+     ├─────────┼─────────┴─────────┤
+     │  Focus  │     Journal       │   row 3
+     └─────────┴───────────────────┘
+   align-items:start so cards are content-height (the staggered bento look). */
+.dashboard-bento {
+  display: grid;
+  grid-template-columns: 1.18fr 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.dashboard-bento[data-density="calm"] { gap: 18px; }
+/* Calm density hides every secondary `.detail` node across the cards. */
+.dashboard-bento[data-density="calm"] .detail { display: none !important; }
+
+.bento-habits  { grid-column: 1;          grid-row: 1 / span 2; }
+.bento-plan    { grid-column: 2 / span 2; grid-row: 1; }
+.bento-goals   { grid-column: 2;          grid-row: 2; }
+.bento-tasks   { grid-column: 3;          grid-row: 2; }
+.bento-focus   { grid-column: 1;          grid-row: 3; }
+.bento-journal { grid-column: 2 / span 2; grid-row: 3; }
+
+/* Narrow / split-window fallback — collapse to two columns (mockup breakpoint). */
+@media (max-width: 1180px) {
+  .dashboard-bento { grid-template-columns: 1fr 1fr; }
+  .bento-habits  { grid-column: 1;          grid-row: 1 / span 2; }
+  .bento-plan    { grid-column: 2;          grid-row: 1; }
+  .bento-goals   { grid-column: 2;          grid-row: 2; }
+  .bento-tasks   { grid-column: 1;          grid-row: 3; }
+  .bento-focus   { grid-column: 2;          grid-row: 3; }
+  .bento-journal { grid-column: 1 / span 2; grid-row: 4; }
+}
